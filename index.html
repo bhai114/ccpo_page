@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Counterfactual and Self-Evaluated Credit Policy Optimization for Multi-Agent Collaboration">
-    <title>CCPO | Multi-Agent Collaboration</title>
+    <title>CCPO | Counterfactual Credit Policy Optimization</title>
     <link rel="stylesheet" href="css/style.css">
     <script>
         window.MathJax = {
@@ -17,156 +17,123 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 </head>
 <body>
-    <header class="hero">
-        <nav class="nav" aria-label="页面导航">
-            <a class="brand" href="#top">CCPO</a>
-            <div class="nav-links">
-                <a href="#overview">概览</a>
-                <a href="#method">方法</a>
-                <a href="#experiments">实验</a>
-                <a href="#paper">论文</a>
-            </div>
-        </nav>
-
-        <div id="top" class="hero-content">
-            <p class="eyebrow">Multi-Agent LLM Collaboration</p>
-            <h1>Counterfactual and Self-Evaluated Credit Policy Optimization</h1>
-            <p class="subtitle">
-                面向多智能体大语言模型协作训练的信用分配方法：用反事实边际贡献和验证器锚定的自评/互评信号，
-                将稀疏团队奖励转化为角色特定的学习信号。
+    <main class="page">
+        <header class="paper-header" id="top">
+            <h1>Counterfactual and Self-Evaluated Credit Policy Optimization for Multi-Agent Collaboration</h1>
+            <p class="authors">
+                Zhongyi Li<sup>1</sup>, Wan Tian<sup>2</sup>, Jinju Chen<sup>3</sup>, Huiming Zhang<sup>1</sup>,
+                Yang Liu<sup>2</sup>, Yikun Ban<sup>1</sup>, Fuzhen Zhuang<sup>1</sup>
             </p>
-            <div class="authors">
-                Zhongyi Li, Wan Tian, Jinju Chen, Huiming Zhang, Yang Liu, Yikun Ban, Fuzhen Zhuang
+            <p class="affiliations">
+                <sup>1</sup>Beihang University &nbsp;&nbsp;
+                <sup>2</sup>Peking University &nbsp;&nbsp;
+                <sup>3</sup>Beijing University of Posts and Telecommunications
+            </p>
+            <div class="links">
+                <a href="https://github.com/bhai114/ccpo" target="_blank" rel="noopener">Code</a>
+                <a href="#abstract">Abstract</a>
+                <a href="#method">Method</a>
+                <a href="#results">Results</a>
+                <a href="#citation">BibTeX</a>
             </div>
-            <div class="actions">
-                <a class="btn primary" href="https://github.com/bhai114/ccpo" target="_blank" rel="noopener">代码仓库</a>
-                <a class="btn secondary" href="#paper">引用信息</a>
-            </div>
-        </div>
-    </header>
+        </header>
 
-    <main>
-        <section id="overview" class="section">
-            <div class="section-heading">
-                <p class="eyebrow">Overview</p>
-                <h2>为什么需要信用分配？</h2>
+        <section id="abstract" class="section">
+            <h2>Abstract</h2>
+            <p>
+                Collaborative multi-agent large language models can solve complex reasoning tasks by decomposing roles,
+                but reinforcement learning for such systems is limited by credit assignment: shared terminal rewards
+                obscure individual contributions and can encourage free-riding. We introduce two optimizer-agnostic
+                credit assignment algorithms for converting joint outcomes into agent-specific learning signals.
+                <strong>Counterfactual Credit Policy Optimization (CCPO)</strong> estimates an agent's marginal
+                contribution by comparing the realized joint outcome with a counterfactual outcome where that agent is
+                removed. <strong>Self-Evaluated Policy Optimization (SEPO)</strong> uses constrained self- and
+                peer-evaluations as a verifier-anchored credit signal while keeping the external task outcome dominant.
+            </p>
+        </section>
+
+        <section class="section">
+            <h2>Motivation</h2>
+            <p>
+                In a sequential Think-Solve collaboration, a <em>Thinker</em> produces an intermediate reasoning trace
+                and a <em>Solver</em> produces the final answer. A shared verifier reward tells the team whether the
+                answer is correct, but not which role helped, harmed, or was redundant. This mismatch can reinforce
+                unhelpful behavior and fails to capture role asymmetry in collaborative LLM training.
+            </p>
+            <div class="summary-grid">
+                <div>
+                    <h3>Problem</h3>
+                    <p>Sparse joint rewards do not identify individual contributions in long textual trajectories.</p>
+                </div>
+                <div>
+                    <h3>Goal</h3>
+                    <p>Produce role-specific rewards that remain anchored to an external verifier.</p>
+                </div>
+                <div>
+                    <h3>Interface</h3>
+                    <p>Use the resulting rewards with GRPO, GSPO, REINFORCE++, or other policy-gradient optimizers.</p>
+                </div>
             </div>
-            <div class="lead-card">
+        </section>
+
+        <section id="method" class="section">
+            <h2>Method</h2>
+            <div class="method-block">
+                <h3>Counterfactual Credit Policy Optimization</h3>
                 <p>
-                    多智能体 LLM 可以通过角色分工解决复杂推理任务，例如由 <strong>Thinker</strong> 生成中间思路，
-                    再由 <strong>Solver</strong> 给出最终答案。但训练时通常只有一个共享的终局奖励，
-                    它无法区分每个角色究竟帮助了、冗余了，还是伤害了最终结果，容易造成搭便车和错误强化。
+                    For agent \(i\), CCPO compares the realized joint reward \(R_{\mathrm{joint}}^{(j)}\) with the
+                    counterfactual reward \(R_{\neg i}^{(j)}\) obtained after removing that agent. The margin is used as
+                    the raw role-specific credit signal:
+                </p>
+                <div class="formula">
+                    $$\Delta_i^{(j)} = R_{\mathrm{joint}}^{(j)} - R_{\neg i}^{(j)}.$$
+                </div>
+                <p>
+                    Positive margins indicate helpful contribution, while non-positive margins indicate redundancy or
+                    harm under the corresponding rollout. In the Think-Solve instantiation, removing the Thinker means
+                    asking the Solver to answer directly from the prompt.
                 </p>
             </div>
-            <div class="feature-grid">
-                <article class="feature-card">
-                    <span class="card-number">01</span>
-                    <h3>角色敏感奖励</h3>
-                    <p>把联合结果映射为每个智能体独立的奖励或优势，显式建模 Thinker 与 Solver 的非对称贡献。</p>
-                </article>
-                <article class="feature-card">
-                    <span class="card-number">02</span>
-                    <h3>优化器无关</h3>
-                    <p>CCPO 和 SEPO 只负责信用分配，所得信号可接入 GRPO、GSPO、REINFORCE++ 等策略梯度优化器。</p>
-                </article>
-                <article class="feature-card">
-                    <span class="card-number">03</span>
-                    <h3>验证器锚定</h3>
-                    <p>任务正确性仍由外部验证器主导，自评/互评只作为有界的信用重分配信号，避免替代真实验证。</p>
-                </article>
+
+            <div class="method-block">
+                <h3>Self-Evaluated Policy Optimization</h3>
+                <p>
+                    SEPO uses constrained self- and peer-evaluations as bounded adjustments around the external verifier
+                    reward \(R_{\mathrm{ver}}\). The verifier remains the dominant signal, while self/peer assessments
+                    redistribute credit within the team:
+                </p>
+                <div class="formula">
+                    $$r_i =
+                    \begin{cases}
+                    R_{\mathrm{ver}} + \lambda_{\mathrm{credit}}\mathrm{bonus}_i, & R_{\mathrm{ver}}=+1,\\
+                    R_{\mathrm{ver}} - \lambda_{\mathrm{blame}}\mathrm{bonus}_i, & R_{\mathrm{ver}}=-1.
+                    \end{cases}$$
+                </div>
+            </div>
+
+            <div class="pipeline" aria-label="Think-Solve pipeline">
+                <span>Prompt</span>
+                <span>Thinker reasoning</span>
+                <span>Solver answer</span>
+                <span>Verifier reward</span>
+                <span>Role-specific credit</span>
             </div>
         </section>
 
-        <section id="method" class="section split-section">
-            <div class="section-heading">
-                <p class="eyebrow">Method</p>
-                <h2>两个信用分配算法</h2>
-            </div>
-
-            <div class="method-grid">
-                <article class="method-card accent-blue">
-                    <h3>CCPO: Counterfactual Credit Policy Optimization</h3>
-                    <p>
-                        CCPO 比较真实协作结果与“移除某个智能体”后的反事实结果，用差值估计该角色的边际贡献。
-                        在 Think-Solve 设置中，移除 Thinker 等价于让 Solver 直接从题目作答。
-                    </p>
-                    <div class="formula">
-                        $$\Delta_i^{(j)} = R_{\mathrm{joint}}^{(j)} - R_{\neg i}^{(j)}$$
-                    </div>
-                    <p class="muted">
-                        当 \(\Delta_i > 0\) 时，该角色提升了团队输出；当 \(\Delta_i \le 0\) 时，该角色可能冗余或有害。
-                    </p>
-                </article>
-
-                <article class="method-card accent-green">
-                    <h3>SEPO: Self-Evaluated Policy Optimization</h3>
-                    <p>
-                        SEPO 使用受约束的自评和互评来分配信用，但始终以外部验证器结果为主信号。
-                        它适合在不额外构造反事实验证调用时，作为补充性的角色信用估计。
-                    </p>
-                    <div class="formula">
-                        $$r_i =
-                        \begin{cases}
-                        R_{\mathrm{ver}} + \lambda_{\mathrm{credit}}\mathrm{bonus}_i, & R_{\mathrm{ver}}=+1\\
-                        R_{\mathrm{ver}} - \lambda_{\mathrm{blame}}\mathrm{bonus}_i, & R_{\mathrm{ver}}=-1
-                        \end{cases}$$
-                    </div>
-                    <p class="muted">
-                        自评/互评分数只在有限范围内调整信用，最终答案错误时基础信号仍保持负向。
-                    </p>
-                </article>
-            </div>
-
-            <div class="pipeline">
-                <div class="pipeline-step">
-                    <span>Prompt</span>
-                    <strong>数学题目</strong>
-                </div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-step">
-                    <span>Agent 1</span>
-                    <strong>Thinker 生成推理</strong>
-                </div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-step">
-                    <span>Agent 2</span>
-                    <strong>Solver 输出答案</strong>
-                </div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-step">
-                    <span>Verifier</span>
-                    <strong>构造角色奖励</strong>
-                </div>
-            </div>
-        </section>
-
-        <section id="experiments" class="section">
-            <div class="section-heading">
-                <p class="eyebrow">Experiments</p>
-                <h2>数学推理基准结果</h2>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <strong>4</strong>
-                    <span>GRPO 主实验模型</span>
-                </div>
-                <div class="stat-card">
-                    <strong>5</strong>
-                    <span>评测数据集</span>
-                </div>
-                <div class="stat-card">
-                    <strong>6×A800</strong>
-                    <span>实验 GPU 设置</span>
-                </div>
-            </div>
+        <section id="results" class="section">
+            <h2>Results</h2>
+            <p>
+                We evaluate two-agent Think-Solve collaboration on mathematical reasoning benchmarks. The main GRPO
+                comparison uses the same protocol, data split, and verifier for an untrained collaborative policy,
+                shared-reward training (ReMA), and CCPO.
+            </p>
 
             <div class="table-wrap">
-                <table class="results-table">
-                    <caption>GRPO 下 MATH500 准确率（%）</caption>
+                <table>
+                    <caption>MATH500 exact-match accuracy under GRPO.</caption>
                     <thead>
                         <tr>
-                            <th>模型</th>
+                            <th>Model</th>
                             <th>Untrained</th>
                             <th>ReMA / Shared</th>
                             <th>CCPO</th>
@@ -177,105 +144,87 @@
                             <td>qwen2.5-1.5b-instruct</td>
                             <td>54.00</td>
                             <td>60.00</td>
-                            <td class="best">61.00</td>
+                            <td><strong>61.00</strong></td>
                         </tr>
                         <tr>
                             <td>llama3.1-8b-instruct</td>
                             <td>46.20</td>
                             <td>51.80</td>
-                            <td class="best">53.40</td>
+                            <td><strong>53.40</strong></td>
                         </tr>
                         <tr>
                             <td>qwen2.5-7b-instruct</td>
                             <td>74.40</td>
                             <td>75.40</td>
-                            <td class="best">77.60</td>
+                            <td><strong>77.60</strong></td>
                         </tr>
                         <tr>
                             <td>qwen3-4b-base</td>
                             <td>46.40</td>
                             <td>78.00</td>
-                            <td class="best">79.40</td>
+                            <td><strong>79.40</strong></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="finding-grid">
-                <article>
-                    <h3>主要发现</h3>
-                    <p>
-                        CCPO 在所有报告模型的 MATH500 上都超过共享奖励训练，并在 AMC23、MinervaMath 等若干
-                        OOD 设置中取得收益，说明显式估计 Thinker 的边际贡献有助于协作推理。
-                    </p>
-                </article>
-                <article>
-                    <h3>必要边界</h3>
-                    <p>
-                        改进并非在所有模型-数据集组合上都一致；AIME25、AMC23、Gaokao2023 的部分设置中共享奖励仍有竞争力。
-                        因此论文将 CCPO 视为有效的角色信用分配机制，而不是无条件占优的奖励设计。
-                    </p>
-                </article>
-            </div>
+            <ul class="findings">
+                <li>CCPO improves MATH500 performance across all evaluated base models in the GRPO setting.</li>
+                <li>CCPO is often beneficial on out-of-distribution benchmarks such as AMC23 and MinervaMath.</li>
+                <li>SEPO is competitive in selected GSPO settings, supporting the optimizer-agnostic view of the credit signals.</li>
+                <li>Gains vary across models and datasets, so credit assignment should be treated as a design axis rather than a universally dominant reward rule.</li>
+            </ul>
         </section>
 
         <section class="section">
-            <div class="section-heading">
-                <p class="eyebrow">Diagnostics</p>
-                <h2>协作是否真的被使用？</h2>
-            </div>
-            <div class="diagnostic-card">
-                <p>
-                    论文通过移除 Agent 1 的 Think-Solve handoff 做诊断：在 qwen2.5-1.5b、llama3.1-8b 和 qwen2.5-7b
-                    上，完整协作均优于“移除 Thinker”的设置。这说明训练后的 Solver 仍然利用了 Thinker 的中间推理，
-                    而不是退化为忽略协作轨迹的单智能体求解。
-                </p>
-                <div class="mini-bars" aria-label="Think-Solve handoff ablation">
-                    <div><span>qwen2.5-1.5b</span><b style="width: 61%;">61.0</b><em style="width: 56.4%;">56.4</em></div>
-                    <div><span>llama3.1-8b</span><b style="width: 53.4%;">53.4</b><em style="width: 52%;">52.0</em></div>
-                    <div><span>qwen2.5-7b</span><b style="width: 77.6%;">77.6</b><em style="width: 76%;">76.0</em></div>
-                </div>
-                <p class="legend"><strong>蓝色</strong>为完整协作，<strong>灰色</strong>为移除 Agent 1。</p>
+            <h2>Collaboration Diagnostic</h2>
+            <p>
+                To check whether the Solver uses the Thinker's message, we remove Agent 1 at inference time. Full
+                collaboration outperforms the Agent-1-removed setting for the reported models, suggesting that the
+                learned Solver still benefits from the handoff rather than ignoring the collaborative trace.
+            </p>
+            <div class="table-wrap compact">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Full collaboration</th>
+                            <th>Agent 1 removed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>qwen2.5-1.5b-instruct</td>
+                            <td><strong>61.00</strong></td>
+                            <td>56.40</td>
+                        </tr>
+                        <tr>
+                            <td>llama3.1-8b-instruct</td>
+                            <td><strong>53.40</strong></td>
+                            <td>52.00</td>
+                        </tr>
+                        <tr>
+                            <td>qwen2.5-7b-instruct</td>
+                            <td><strong>77.60</strong></td>
+                            <td>76.00</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
-        <section id="paper" class="section paper-section">
-            <div class="section-heading">
-                <p class="eyebrow">Paper</p>
-                <h2>论文信息</h2>
-            </div>
-            <div class="paper-grid">
-                <article class="paper-card">
-                    <h3>标题</h3>
-                    <p>Counterfactual and Self-Evaluated Credit Policy Optimization for Multi-Agent Collaboration</p>
-                </article>
-                <article class="paper-card">
-                    <h3>机构</h3>
-                    <p>Beihang University, Peking University, Beijing University of Posts and Telecommunications</p>
-                </article>
-                <article class="paper-card">
-                    <h3>关键词</h3>
-                    <p>Multi-Agent LLMs, Credit Assignment, Counterfactual Rewards, Self-Evaluation, GRPO, GSPO</p>
-                </article>
-                <article class="paper-card">
-                    <h3>资源</h3>
-                    <p>代码已公开在 <a href="https://github.com/bhai114/ccpo" target="_blank" rel="noopener">github.com/bhai114/ccpo</a>。</p>
-                </article>
-            </div>
-
-            <details class="bibtex">
-                <summary>BibTeX</summary>
-                <pre><code>@article{li2026ccpo,
+        <section id="citation" class="section">
+            <h2>Citation</h2>
+            <pre><code>@article{li2026ccpo,
   title={Counterfactual and Self-Evaluated Credit Policy Optimization for Multi-Agent Collaboration},
   author={Li, Zhongyi and Tian, Wan and Chen, Jinju and Zhang, Huiming and Liu, Yang and Ban, Yikun and Zhuang, Fuzhen},
   year={2026}
 }</code></pre>
-            </details>
         </section>
-    </main>
 
-    <footer class="footer">
-        <p>CCPO Project Page · Counterfactual Credit for Multi-Agent LLM Collaboration</p>
-    </footer>
+        <footer>
+            <p>Project page for CCPO: Counterfactual and Self-Evaluated Credit Policy Optimization.</p>
+        </footer>
+    </main>
 </body>
 </html>
