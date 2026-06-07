@@ -1,0 +1,26 @@
+# Jekyll configuration for GitHub Pages
+title: CCPO - Counterfactual Credit Policy Optimization
+description: A research page for multi-agent collaboration with counterfactual credit policy optimization
+url: "https://bhai114.github.io"
+baseurl: "/ccpo_page"
+
+# Theme configuration
+theme: jekyll-theme-minimal
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Site settings
+author:
+  name: bhai114
+  email: your-email@example.com
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Exclude from processing
+exclude:
+  - .gitignore
+  - Gemfile
+  - Gemfile.lock
