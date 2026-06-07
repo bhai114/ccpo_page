@@ -107,11 +107,14 @@ a:hover {
 }
 
 .links a {
+    align-items: center;
     background: #ffffff;
     border: 1px solid #cfdff4;
     border-radius: 999px;
     color: var(--text);
+    display: inline-flex;
     font-size: 0.95rem;
+    gap: 7px;
     font-weight: 600;
     padding: 7px 15px;
 }
@@ -120,6 +123,33 @@ a:hover {
     background: var(--blue-soft);
     color: var(--link);
     text-decoration: none;
+}
+
+.links a svg,
+.links a img {
+    display: block;
+    height: 17px;
+    width: 17px;
+}
+
+.links a svg {
+    fill: currentColor;
+}
+
+.links a:nth-child(2) {
+    background: #b31b1b;
+    border-color: #b31b1b;
+    color: #ffffff;
+}
+
+.links a:nth-child(2):hover {
+    background: #961717;
+    color: #ffffff;
+}
+
+.links a:nth-child(2) img {
+    height: 15px;
+    width: 38px;
 }
 
 .tldr {
@@ -289,7 +319,7 @@ footer p {
 table {
     border-collapse: collapse;
     font-size: 0.95rem;
-    min-width: 680px;
+    min-width: 760px;
     width: 100%;
 }
 
@@ -316,7 +346,7 @@ tbody tr:nth-child(even) {
     background: #fbfbfb;
 }
 
-tbody td:last-child strong {
+tbody td strong {
     background: #edf5ff;
     border-radius: 999px;
     color: #174a94;
