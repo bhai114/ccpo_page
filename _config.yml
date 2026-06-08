@@ -1,6 +1,6 @@
 # Jekyll configuration for GitHub Pages
 title: CCPO - Credit Policy Optimization
-description: Counterfactual and Self-Evaluated Credit Policy Optimization for Multi-Agent Collaboration
+description: Counterfactual Credit Policy Optimization for Multi-Agent Collaboration
 url: "https://bhai114.github.io"
 baseurl: "/ccpo_page"
 
